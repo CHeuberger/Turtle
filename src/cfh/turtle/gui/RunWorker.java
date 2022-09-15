@@ -6,6 +6,8 @@ package cfh.turtle.gui;
 
 import static java.util.Objects.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -21,6 +23,8 @@ public class RunWorker extends SwingWorker<Void, Void> {
     private final String text;
     private final TurtlePanel turtle;
     private final Consumer<Callable<Void>> finisher;
+    
+    private final Map<String, Value> variables = new HashMap<>();
 
     RunWorker(String text, TurtlePanel turtle, Consumer<Callable<Void>> finisher) {
         this.text = requireNonNull(text);
@@ -30,12 +34,21 @@ public class RunWorker extends SwingWorker<Void, Void> {
 
     @Override
     protected Void doInBackground() throws Exception {
+        variables.clear();
         try (Scanner scanner = new Scanner(text)) {
             while (scanner.hasNextLine()) {
+                String[] words;
                 var line = scanner.nextLine().trim();
                 if (line.isBlank() || line.startsWith("#"))
                     continue;
-                var words = line.split("\\h++", 2);
+
+                words = line.split("\\h*=\\h*", 2);
+                if (words.length == 2) {
+                    variables.put(words[0], Constant.of(words[1]));
+                    continue;
+                }
+                
+                words = line.split("\\h++", 2);
                 switch (words[0].toLowerCase()) {
                     case "delay" -> delay(words[1]);
                     case "reset" -> turtle.reset();
@@ -83,5 +96,35 @@ public class RunWorker extends SwingWorker<Void, Void> {
     
     private double parse(String string) {
         return Double.parseDouble(string);
+    }
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    private static sealed interface Value {
+        //
+    }
+    
+    private static final class Constant implements Value {
+        static Constant of(String text) throws NumberFormatException {
+            return new Constant(Double.parseDouble(text));
+        }
+        
+        private final double value;
+        Constant(double value) {
+            this.value = value;
+        }
+        @Override
+        public String toString() {
+            return Double.toHexString(value);
+        }
+        @Override
+        public int hashCode() {
+            return Double.hashCode(value);
+        }
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) return true;
+            return (obj instanceof Constant other) && (other.value == this.value);
+        }
     }
 }
