@@ -26,7 +26,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
@@ -45,7 +45,6 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -195,68 +194,24 @@ public class MainPanel extends JPanel {
         var text = script.getText();
         preferences.put(PREF_SCRIPT, text);
         
-        var worker = new SwingWorker<Void, Void>() {
-            private final Scanner scanner = new Scanner(text);
-            @Override
-            protected Void doInBackground() throws Exception {
-                while (scanner.hasNextLine()) {
-                    var line = scanner.nextLine().trim();
-                    if (line.isBlank() || line.startsWith("#"))
-                        continue;
-                    var words = line.split("\\h++", 2);
-                    switch (words[0].toLowerCase()) {
-                        case "delay" -> delay(words[1]);
-                        case "reset" -> turtle.reset();
-                        case "forward", "move" -> forward(words[1]);
-                        case "backward", "back" -> backward(words[1]);
-                        case "left" -> left(words.length<2 ? null : words[1]);
-                        case "right" -> right(words.length<2 ? null : words[1]);
-                        case "up", "penup " -> turtle.pen(false);
-                        case "down", "pendown" -> turtle.pen(true);
-                        default -> throw new IllegalArgumentException("invalid command \"" + line + "\"");
-                    }
-                }
-                return null;
-            }
-            @Override
-            protected void done() {
-                try {
-                    get();
-                } catch (ExecutionException ex) {
-                    var cause = ex.getCause();
-                    cause.printStackTrace();
-                    error(cause.getClass().getSimpleName(), cause.getMessage());
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                    error(ex.getClass().getSimpleName(), ex.getMessage());
-                } finally {
-                    enabled(true);
-                }
-            }
-            private void forward(String amount) {
-                var a = parse(amount);
-                turtle.forward(a);
-            }
-            private void backward(String amount) {
-                var a = parse(amount);
-                turtle.backward(a);
-            }
-            private void left(String degrees) {
-                var d = degrees==null||degrees.isBlank() ? 90 : parse(degrees);
-                turtle.left(d);
-            }
-            private void right(String degrees) {
-                var d = degrees==null||degrees.isBlank() ? 90 : parse(degrees);
-                turtle.right(d);
-            }
-            private void delay(String time) {
-                turtle.delay((int) parse(time));
-            }
-            private double parse(String string) {
-                return Double.parseDouble(string);
-            }
-        };
+        var worker = new RunWorker(text, turtle, this::runDone);
         worker.execute();
+    }
+    
+    private void runDone(Callable<Void> done) {
+        try {
+            done.call();
+        } catch (ExecutionException ex) {
+            var cause = ex.getCause();
+            cause.printStackTrace();
+            error(cause.getClass().getSimpleName(), cause.getMessage());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            error(ex.getClass().getSimpleName(), ex.getMessage());
+        } finally {
+            enabled(true);
+        }
+
     }
     
     private void doQuit(ActionEvent ev) {
