@@ -1,0 +1,28 @@
+# 
+reset
+delay 3
+
+# square
+move 50
+left
+move 50
+left
+move 50
+  # triangle
+  right 120
+  move 50
+  right 120
+  move 50
+  right 120
+  up
+  move 50
+  down
+left
+move 50
+left
+
+up
+delay 10
+move 50
+delay 5
+down
