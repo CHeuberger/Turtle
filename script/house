@@ -1,28 +1,29 @@
 # 
 reset
+Side = 50
 delay 3
 
 # square
-move 50
+move Side
 left
-move 50
+move Side
 left
-move 50
+move Side
   # triangle
   right 120
-  move 50
+  move Side
   right 120
-  move 50
+  move Side
   right 120
   up
-  move 50
+  move Side
   down
 left
-move 50
+move Side
 left
 
 up
 delay 10
-move 50
+move Side
 delay 5
 down

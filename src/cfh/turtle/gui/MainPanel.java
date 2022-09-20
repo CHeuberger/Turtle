@@ -4,11 +4,7 @@
  */
 package cfh.turtle.gui;
 
-import static javax.swing.JOptionPane.ERROR_MESSAGE;
-import static javax.swing.JOptionPane.YES_NO_OPTION;
-import static javax.swing.JOptionPane.YES_OPTION;
-import static javax.swing.JOptionPane.showConfirmDialog;
-import static javax.swing.JOptionPane.showMessageDialog;
+import static javax.swing.JOptionPane.*;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -24,9 +20,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
@@ -45,10 +41,12 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
 
 /**
  * @author Carlos F. Heuberger, 2022-09-13
@@ -108,6 +106,7 @@ public class MainPanel extends JPanel {
             @Override public void insertUpdate(DocumentEvent e) { changed = true; }
             @Override public void changedUpdate(DocumentEvent e) { changed = true; }
         });
+        actions.add(script);
         
         turtle = new TurtlePanel();
         turtle.setForeground(Color.BLACK);
@@ -182,6 +181,7 @@ public class MainPanel extends JPanel {
             preferences.put(PREF_FILE, file.getAbsolutePath());
             try (var writer = new BufferedWriter(new FileWriter(file))) {
                 writer.write(script.getText());
+                changed = false;
             } catch (IOException ex) {
                 ex.printStackTrace();
                 error(ex.getClass().getSimpleName(), "Exception saving \"%s\":", file, ex.getMessage());
@@ -198,18 +198,32 @@ public class MainPanel extends JPanel {
         worker.execute();
     }
     
-    private void runDone(Callable<Void> done) {
+    private void runDone(SwingWorker<?, ?> worker) {
         try {
-            done.call();
+            worker.get();
         } catch (ExecutionException ex) {
             var cause = ex.getCause();
             cause.printStackTrace();
             error(cause.getClass().getSimpleName(), cause.getMessage());
+            if (cause instanceof ParseException pex) {
+                var line = pex.getErrorOffset() - 1;
+                if (line >= 0) {
+                    try {
+                        var start = script.getLineStartOffset(line);
+                        var end = script.getLineEndOffset(line) - 1;
+                        script.setEnabled(true);
+                        script.select(start, end);
+                    } catch (BadLocationException lex) {
+                        lex.printStackTrace();
+                    }
+                }
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
             error(ex.getClass().getSimpleName(), ex.getMessage());
         } finally {
-            enabled(true);
+             enabled(true);
+             script.requestFocus();
         }
 
     }
