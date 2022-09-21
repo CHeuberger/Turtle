@@ -179,6 +179,11 @@ public class MainPanel extends JPanel {
         if (chooser.showSaveDialog(this) == chooser.APPROVE_OPTION) {
             file = chooser.getSelectedFile();
             preferences.put(PREF_FILE, file.getAbsolutePath());
+            if (file.exists()) {
+                var backup = new File(file.getParentFile(), file.getName() + ".bak");
+                backup.delete();
+                file.renameTo(backup);
+            }
             try (var writer = new BufferedWriter(new FileWriter(file))) {
                 writer.write(script.getText());
                 changed = false;

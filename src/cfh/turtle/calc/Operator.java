@@ -12,17 +12,45 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.function.Consumer;
 import java.util.function.DoubleBinaryOperator;
+import java.util.function.IntBinaryOperator;
 
 /**
  * @author Carlos F. Heuberger, 2022-09-20
  *
  */
+/*
+ * 
+ */
 public enum Operator {
     
-    MUL("*", 120, true, op2((a,b) -> a * b)),
-    DIV("/", 120, true, op2((a,b) -> a / b)),
-    ADD("+", 110, true, op2((a,b) -> a + b)),
-    SUB("-", 110, true, op2((a,b) -> a - b)),
+    LPAR("(", 150, true, null),
+    RPAR(")", 150, true, null),
+    
+    // post increment ++ --  R
+    // pre-increment ++ --, unary + - ! ~ R
+    
+    EXP("^", 130, false, opDD((a,b) -> Math.pow(a, b))),
+    
+    MUL("*", 120, true, opDD((a,b) -> a * b)),
+    DIV("/", 120, true, opDD((a,b) -> a / b)),
+    MOD("%", 120, true, opDD((a,b) -> a % b)),
+    
+    ADD("+", 110, true, opDD((a,b) -> a + b)),
+    SUB("-", 110, true, opDD((a,b) -> a - b)),
+    
+    LEF_SHIFT("<<", 100, true, opII((a,b) -> a << b)),
+    RIGHT_SHIFT(">>", 100, true, opII((a,b) -> a >> b)),
+    UNSIGNED_SHIFT(">>>", 100, true, opII((a,b) -> a >>>b)),
+    // shift << >> >>> 
+    // relational < > <= >=
+    // equal == !=
+    // AND &
+    // XOR ^
+    // OR |
+    // sAND &&
+    // sOR ||
+    // ternary ?:
+    //(assignment)???
     ;
     
     //==============================================================================================
@@ -36,13 +64,25 @@ public enum Operator {
     public static boolean is(String symbol) { return operators.containsKey(symbol); }
     public static Operator get(String symbol) { return operators.get(symbol); }
     
-    private static Consumer<Stack<Value>> op2(DoubleBinaryOperator op) {
+    private static Consumer<Stack<Value>> opII(IntBinaryOperator op) {
         return (Stack<Value> stack) -> {
             if (stack.size() < 2)
                 throw new ArithmeticException("not enough values");
-            var a = stack.pop().asDouble();
-            var b = stack.pop().asDouble();
-            var result = op.applyAsDouble(a, b);
+            var right = stack.pop().asInt();
+            var left = stack.pop().asInt();
+            var result = op.applyAsInt(left, right);
+            System.out.printf("(%s %s) = %s", left, right, result);  // XXX
+            stack.push(Value.of(result));
+        };
+    }
+    private static Consumer<Stack<Value>> opDD(DoubleBinaryOperator op) {
+        return (Stack<Value> stack) -> {
+            if (stack.size() < 2)
+                throw new ArithmeticException("not enough values");
+            var right = stack.pop().asDouble();
+            var left = stack.pop().asDouble();
+            var result = op.applyAsDouble(left, right);
+            System.out.printf("(%s %s) = %s", left, right, result);  // XXX
             stack.push(Value.of(result));
         };
     }
@@ -59,7 +99,6 @@ public enum Operator {
         this.symbol = symbol;
         this.precedence = precedence;
         this.left = left;
-        assert runner != null : "null runner";
         this.runner = runner;
     }
     
@@ -72,7 +111,10 @@ public enum Operator {
     }
     
     public void execute(Stack<Value> stack) {
+        System.out.print(symbol);  // XXX
+        System.out.flush();
         runner.accept(stack);
+        System.out.println();  // XXX
     }
     
     @Override

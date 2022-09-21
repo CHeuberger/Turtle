@@ -1,0 +1,79 @@
+# 
+reset
+
+# assignment
+side = 5 * 10
+move side
+left
+move 3
+right
+move -50
+left
+move 5
+right
+
+# precedence
+move 20 + 3 * 10
+left
+move 3
+right
+move -50
+left
+move 3
+right
+move 3 * 10 + 20
+left
+move 3
+right
+move -50
+left
+move 5
+right
+
+# associative
+move 100 - 30 - 20
+left
+move 3
+right
+move -50
+left
+move 5
+right
+
+# parenthesis
+move ( 2 + 3 ) * 10
+left
+move 3
+right
+move -50
+left
+move 5
+right
+
+# shift
+move 25 << 1
+left
+move 3
+right
+move -200 >> 2
+left
+move 5
+right
+
+# exponential
+move 1 + 7 ^ 2
+left
+move 3
+right
+move -4 ^ 3 + 14
+left
+move 3
+right
+move 2 ^ 2 ^ 3 / 4 - 14
+left
+move 3
+right
+move -50
+left
+move 5
+right
